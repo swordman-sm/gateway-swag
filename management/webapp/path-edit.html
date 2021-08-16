@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>欢迎页面-X-admin2.0</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+    <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+    <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+<div class="x-body">
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <label for="lb" class="layui-form-label">
+                <span class="x-red">*</span>请求方式
+            </label>
+            <div class="layui-input-inline">
+                <select id="req_method" name="req_method" class="valid">
+                    <option value="ALL">ALL</option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="OPTIONS">OPTIONS</option>
+                    <option value="HEAD">HEAD</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label for="domain_url" class="layui-form-label">
+                <span class="x-red">*</span>路径
+            </label>
+            <div class="layui-input-block">
+                <input type="text" id="req_path" name="req_path" disabled  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label for="domain_url" class="layui-form-label">
+                请求路径
+            </label>
+            <div class="layui-input-inline">
+                <input type="text" id="search_path" name="search_path"  class="layui-input">
+            </div>
+            <label class="layui-form-label">
+                替换为
+            </label>
+            <div class="layui-input-inline">
+                <input type="text" id="replace_path" name="replace_path"  class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">熔断</label>
+            <div class="layui-input-inline">
+                <input type="text" id="circuit_breaker_request" name="circuit_breaker_request"
+                       class="layui-input" placeholder="请求数" lay-verify="circuitBreaker">
+            </div>
+            <div class="layui-input-inline">
+                <input type="text" id="circuit_breaker_percent" name="circuit_breaker_percent"
+                       class="layui-input" placeholder="阈值触发百分比" lay-verify="circuitBreaker">
+            </div>
+            <div class="layui-input-inline">
+                <input type="text" id="circuit_breaker_timeout" name="circuit_breaker_timeout"
+                       class="layui-input" placeholder="超时时间(单位毫秒)" >
+            </div>
+            <div class="layui-input-inline">
+                <label class="layui-form-label">开启熔断</label>
+                <input type="checkbox" id="circuit_breaker_enabled" name="circuit_breaker_enabled" verify="circuitBreakerSwitch"
+                       lay-skin="switch" lay-text="ON|OFF">
+            </div>
+
+            <div class="layui-input-inline">
+                <label class="layui-form-label">强制熔断</label>
+                <input type="checkbox" id="circuit_breaker_force" name="circuit_breaker_force"
+                       lay-skin="switch" lay-text="ON|OFF">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label for="lb" class="layui-form-label"></label>
+            <div class="layui-input-block">
+                <textarea name="circuit_breaker_msg" id="circuit_breaker_msg" placeholder="自定义熔断返回结果" class="layui-textarea"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label for="lb" class="layui-form-label">私有转发</label>
+            <div class="layui-input-inline">
+                <input type="checkbox" id="private_proxy_enabled" name="private_proxy_enabled"
+                       lay-skin="switch" lay-text="ON|OFF" lay-filter="private_proxy_enabled">
+            </div>
+        </div>
+        <div id="proxy-set-html" style="display: none">
+            <div class="layui-form-item">
+                <label for="lb" class="layui-form-label">
+                    <span class="x-red">*</span>负载均衡
+                </label>
+                <div class="layui-input-inline">
+                    <select id="lb_type" name="lb_type" class="valid">
+                        <option value="roundRobin">轮询</option>
+                        <option value="random">随机</option>
+                    </select>
+                </div>
+                <div class="layui-input-inline">
+                    <input type="text" id="proxy_target" name="proxy_target"  placeholder="包含http/https的域名地址"
+                           lay-verify="proxy_target" class="layui-input">
+                </div>
+                <input type="button"  class="layui-btn" id="add_target" value="增加目标">
+                <div class="layui-input-block" id="proxy_list" style="display: none;">
+                    <table class="layui-table" style="width: 35%">
+                        <tbody id="proxy_list_table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label for="L_repass" class="layui-form-label">
+            </label>
+            <button class="layui-btn" lay-submit lay-filter="sub">提交</button>
+        </div>
+    </form>
+</div>
+<script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="./lib/layui/layui.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="./js/admin.js"></script>
+
+<script>
+    var domain_id = getUrlParam("domain_id");
+    var path_id = getUrlParam("path_id");
+    var proxy_targets = [];
+
+    if(domain_id == "" || path_id == "") {
+        layer.alert("无域名id或路径id数据", {icon: 2}, function () {
+            parent.refresh();
+            x_admin_close();
+        });
+    }
+
+    function del_target(index) {
+        proxy_targets.splice(index, 1);
+        refresh_target_html();
+    }
+
+    function refresh_target_html() {
+        proxy_targets = unique(proxy_targets)
+        if(proxy_targets.length > 0) {
+            $("#proxy_list").show();
+            var domain_table_html = "";
+            for(var i=0; i<proxy_targets.length; i++) {
+                domain_table_html += "<tr>" +
+                    "<td width='50%'>"+proxy_targets[i].pointer+"</td>" +
+                    "<td width='25%'>"+proxy_targets[i].weight+"</td>" +
+                    "<td width='25%'><span onclick=\"del_target("+i+")\">删除</span></td>" +
+                    "</tr>";
+            }
+            $("#proxy_list_table").html(domain_table_html);
+        } else {
+            $("#proxy_list_table").html("");
+            $("#domain_list").hide();
+        }
+    }
+
+    $("#add_target").click(function (e) {
+        var target_val = $("#proxy_target").val();
+        if (target_val != "") {
+            var target = {"pointer": target_val, "weight": 1};
+            proxy_targets.push(target)
+        }
+        refresh_target_html();
+    });
+
+    $(document).ready(function(){
+        request("GET", HGW_MANAGE_API + "domains/"+domain_id+"/paths/"+path_id, "json", false, {},
+            function(rsp) {
+                if(rsp.status == 1) {
+                    $("#req_path").val(rsp.data.req_path);
+                    $("#req_method").val(rsp.data.req_method);
+                    $("#lb_type").val(rsp.data.lb_type);
+                    $("#search_path").val(rsp.data.search_path);
+                    $("#replace_path").val(rsp.data.replace_path);
+
+                    if(rsp.data.circuit_breaker_request != 0){
+                        $("#circuit_breaker_request").val(rsp.data.circuit_breaker_request);
+                    }
+                    if(rsp.data.circuit_breaker_percent != 0) {
+                        $("#circuit_breaker_percent").val(rsp.data.circuit_breaker_percent);
+                    }
+                    if(rsp.data.circuit_breaker_timeout != 0) {
+                        $("#circuit_breaker_timeout").val(rsp.data.circuit_breaker_timeout);
+                    }
+                    if(rsp.data.circuit_breaker_msg != "") {
+                        $("#circuit_breaker_msg").val(rsp.data.circuit_breaker_msg);
+                    }
+                    if(rsp.data.circuit_breaker_enabled) {
+                        $("#circuit_breaker_enabled").attr("checked", "checked");
+                    }
+                    if(rsp.data.circuit_breaker_force) {
+                        $("#circuit_breaker_force").attr("checked", "checked");
+                    }
+                    if(rsp.data.private_proxy_enabled) {
+                        $("#private_proxy_enabled").attr("checked", "checked");
+                        $("#proxy-set-html").show();
+                    }
+                    if(rsp.data.targets) {
+                        proxy_targets = rsp.data.targets;
+                        refresh_target_html();
+                    }
+                } else {
+                    layer.alert("数据异常", {icon: 6}, function () {
+                        var index = parent.layer.getFrameIndex(window.name);
+                        parent.layer.close(index);
+                    });
+                }
+            });
+    });
+
+    layui.use(['form','layer'], function(){
+        var form = layui.form,layer = layui.layer;
+        form.on('switch(private_proxy_enabled)', function(data){
+            if(data.elem.checked) {
+                $("#proxy-set-html").show();
+            } else {
+                $("#proxy-set-html").hide();
+            }
+        });
+
+        form.verify({
+            proxy_target: function(value){
+                if($("#private_proxy_enabled").is(':checked')) {
+                    if (proxy_targets < 1) {
+                        return '请填写转发目标地址';
+                    }
+                }
+            },
+            circuitBreaker: function(value) {
+                if($("#circuit_breaker_enabled").is(':checked')) {
+                    if (!new RegExp("^(0|[1-9][0-9]*)$").test(value)) {
+                        return '请输入正整数';
+                    }
+                }
+            },
+            circuitBreakerSwitch: function (value) {
+                if($("#circuit_breaker_enabled").is(':checked')) {
+                    var circuit_breaker_request = $("#circuit_breaker_request").val();
+                    var circuit_breaker_percent = $("#circuit_breaker_percent").val();
+                    if(circuit_breaker_request <= 0 || circuit_breaker_percent <= 0) {
+                        return '请输入熔断参数';
+                    }
+                }
+            }
+        });
+        form.on('submit(sub)', function(data){
+            var req_path = $("#req_path").val();
+            var search_path = $("#search_path").val();
+            var replace_path = $("#replace_path").val();
+            var req_method = $("#req_method").val();
+            var circuit_breaker_request = $("#circuit_breaker_request").val();
+            var circuit_breaker_percent = $("#circuit_breaker_percent").val();
+            var circuit_breaker_timeout = $("#circuit_breaker_timeout").val();
+            var circuit_breaker_msg = $("#circuit_breaker_msg").val();
+            var circuit_breaker_enabled = $("#circuit_breaker_enabled").is(':checked');
+            var circuit_breaker_force = $("#circuit_breaker_force").is(':checked');
+            var private_proxy_enabled = $("#private_proxy_enabled").is(':checked');
+            var lb_type = $("#lb_type").val();
+
+            var params = {
+                req_path: req_path,
+                search_path: search_path,
+                replace_path: replace_path,
+                req_method: req_method,
+                circuit_breaker_request: circuit_breaker_request,
+                circuit_breaker_percent: circuit_breaker_percent,
+                circuit_breaker_timeout: circuit_breaker_timeout,
+                circuit_breaker_msg: circuit_breaker_msg,
+                circuit_breaker_enabled: circuit_breaker_enabled,
+                circuit_breaker_force: circuit_breaker_force,
+                private_proxy_enabled: private_proxy_enabled,
+                lb_type: lb_type,
+                proxy_targets: JSON.stringify(proxy_targets),
+            };
+            request("POST", HGW_MANAGE_API + "domains/"+domain_id+"/paths/"+path_id, "json", false, params,
+                function(rsp) {
+                    if (rsp.status == 1) {
+                        layer.alert("修改成功", {icon: 6}, function () {
+                            parent.refresh();
+                            var index = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(index);
+                        });
+                    } else {
+                        layer.alert("失败");
+                    }
+                });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>
