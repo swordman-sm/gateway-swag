@@ -8,7 +8,7 @@
   .jsonview .null {
     color: red; }
   .jsonview .bool {
-    color: blue; }
+    color: #0000ff; }
   .jsonview .num {
     color: blue; }
   .jsonview .string {

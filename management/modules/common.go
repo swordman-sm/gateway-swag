@@ -14,14 +14,18 @@ const (
 	LoginParamsError        = -2002
 	DataCannotDeleteError   = -3001
 	DataParseError          = -4001
-	hgwPrefix               = "/swag-gateway/"
-	authDataPath            = hgwPrefix + "auth-data/"
+	hgwPrefix               = "/swag-gateway"
+	authDataPath            = hgwPrefix + "/auth-data"
 	authInitDataPath        = authDataPath + "/init"
 	adminUserDataPathFormat = authDataPath + "/user/%s"
 	dialTimeout             = 3 * time.Second
 	readTimeout             = 3 * time.Second
 	writeTimeout            = 3 * time.Second
 	bakDataTTL              = 1800
+	hgwCertsPrefix          = hgwPrefix + "server-tls/"
+	hgwCertFormat           = hgwCertsPrefix + "%s"
+	hgwCertsBakPrefix       = hgwPrefix + "server-tls-bak/"
+	hgwCertBakFormat        = hgwCertsBakPrefix + "%s"
 )
 
 //成功信息
