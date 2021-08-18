@@ -3,6 +3,11 @@
   <component name="issues">
     <option name="index">
       <map>
+        <entry key="/Dummy.txt">
+          <value>
+            <set />
+          </value>
+        </entry>
         <entry key="$PROJECT_DIR$/management/app.go">
           <value>
             <set />
@@ -19,6 +24,21 @@
           </value>
         </entry>
         <entry key="$PROJECT_DIR$/management/modules/common.go">
+          <value>
+            <set />
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/management/modules/domain.go">
+          <value>
+            <set />
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/management/modules/domain_handler.go">
+          <value>
+            <set />
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/management/modules/domain_service.go">
           <value>
             <set />
           </value>
