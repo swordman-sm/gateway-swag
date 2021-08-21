@@ -3,39 +3,33 @@ package modules
 import (
 	"crypto/tls"
 	"encoding/json"
+	"gateway-swag/management/modules/base"
+	"gateway-swag/management/modules/domain"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"time"
 )
 
-type Cert struct {
-	Id           string `json:"id"`
-	SerName      string `json:"ser_name"`
-	CertBlock    string `json:"cert_block"`
-	CertKeyBlock string `json:"cert_key_block"`
-	SetTime      string `json:"set_time"`
-}
-
 //证书管理
 func Certs(ctx *gin.Context) {
 	datas, err := getAllCertData()
 	if err != nil {
-		resultCtx{ctx}.ErrResult(SystemError)
+		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
-	var certs []*Cert
+	var certs []*domain.Cert
 	if datas.Count > 0 {
 		for _, kv := range datas.Kvs {
-			cert := new(Cert)
+			cert := new(domain.Cert)
 			err := json.Unmarshal(kv.Value, cert)
 			if err == nil {
 				certs = append(certs, cert)
 			}
 		}
-		resultCtx{ctx}.SucResult(certs)
+		base.Result{Context: ctx}.SucResult(certs)
 		return
 	}
-	resultCtx{ctx}.SucResult(make([]string, 0))
+	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
 func PutCert(ctx *gin.Context) {
@@ -44,13 +38,13 @@ func PutCert(ctx *gin.Context) {
 	serName := ctx.PostForm("ser_name")
 
 	if serName == "" || certKeyBlock == "" || certBlock == "" {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	_, err := tls.X509KeyPair([]byte(certBlock), []byte(certKeyBlock))
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
@@ -60,7 +54,7 @@ func PutCert(ctx *gin.Context) {
 	if certId == "" {
 		certId = uuid.Must(uuid.NewV4()).String()
 	}
-	cert := new(Cert)
+	cert := new(domain.Cert)
 	cert.Id = certId
 	cert.SerName = serName
 	cert.CertBlock = certBlock
@@ -69,28 +63,28 @@ func PutCert(ctx *gin.Context) {
 
 	certB, err := json.Marshal(cert)
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	err = putCertData(cert.Id, string(certB))
 	if err != nil {
-		resultCtx{ctx}.ErrResult(SystemError)
+		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
-	resultCtx{ctx}.SucResult(cert)
+	base.Result{Context: ctx}.SucResult(cert)
 }
 
 func DelCert(ctx *gin.Context) {
 	certId := ctx.Param("cert_id")
 	if certId == "" {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 	deleted := delCertData(certId)
 	if deleted {
-		resultCtx{ctx}.SucResult(nil)
+		base.Result{Context: ctx}.SucResult(nil)
 		return
 	}
-	resultCtx{ctx}.ErrResult(SystemError)
+	base.Result{Context: ctx}.ErrResult(base.SystemError)
 }

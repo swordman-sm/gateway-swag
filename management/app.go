@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
-
 )
 
 var (
@@ -40,7 +39,31 @@ func main() {
 	engine.Static("/static/", "webapp/static")
 
 	//统一群组 路径定义
-	engine.Group("/v1", modules.AuthHandler)
+	group := engine.Group("/v1", modules.AuthHandler)
+
+	group.POST("/domains/", modules.AddDomainData)
+	group.GET("/domains/", modules.QueryAllDomains)
+	group.POST("/domains/:domain_id", modules.AddDomainData)
+	group.GET("/domains/:domain_id", modules.QueryDomainDataByDomainId)
+	group.DELETE("/domains/:domain_id", modules.DelDomainByDomainId)
+
+	group.POST("/domains/:domain_id/paths/", modules.PutPath)
+	group.POST("/domains/:domain_id/paths/:path_id", modules.PutPath)
+	group.GET("/domains/:domain_id/paths/", modules.Paths)
+	group.GET("/domains/:domain_id/paths/:path_id", modules.GetPath)
+	group.DELETE("/domains/:domain_id/paths/:path_id", modules.DelPath)
+
+	engine.POST("/certs/", modules.PutCert)
+	engine.GET("/certs/", modules.Certs)
+	engine.POST("/certs/:cert_id", modules.PutCert)
+	engine.DELETE("/certs/:cert_id", modules.DelCert)
+
+	group.GET("/gateways/", modules.Gateways)
+	group.GET("/gateways/:server_name", modules.Gateway)
+
+	group.POST("/requests-listen/:domain_id/", modules.AddRequestListen)
+	group.GET("/requests-copy/", modules.RequestsCopy)
+
 	engine.GET("/index", modules.Index, modules.AuthHandler)
 	engine.POST("/init", modules.AuthInit)
 	engine.POST("/login", modules.Login)

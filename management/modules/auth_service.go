@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"gateway-swag/management/modules/base"
 	"github.com/form3tech-oss/jwt-go"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
@@ -12,21 +13,21 @@ import (
 
 //根据userId获取存储在etcd指定的user key
 func getUserKey(userId string) string {
-	return fmt.Sprintf(adminUserDataPathFormat, userId)
+	return fmt.Sprintf(base.AdminUserDataPathFormat, userId)
 }
 
 //在etcd中根据用户id获取用户
 func getAdminUserByUserId(userId string) (*clientv3.GetResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-	resp, err := cli.Get(ctx, getUserKey(userId))
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
+	resp, err := base.Cli.Get(ctx, getUserKey(userId))
 	cancel()
 	return resp, err
 }
 
 //初始化admin用户信息
 func authDataInit() (*clientv3.GetResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-	rsp, err := cli.Get(ctx, authInitDataPath)
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
+	rsp, err := base.Cli.Get(ctx, base.AuthInitDataPath)
 	cancel()
 	return rsp, err
 }
@@ -50,11 +51,11 @@ func initPasswordByMd5(password, salt string) string {
 }
 
 func putAdminUser(userId string, adminJson []byte) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	//etcd 使用 Txn 提供简单的事务处理，使用这个特性，可以一次性插入多条语句
-	txn := cli.Txn(ctx)
+	txn := base.Cli.Txn(ctx)
 	commit, err := txn.Then(clientv3.OpPut(getUserKey(userId), string(adminJson)),
-		clientv3.OpPut(authDataPath, time.Now().Format("2006-01-02 15:04"))).Commit()
+		clientv3.OpPut(base.AuthDataPath, time.Now().Format("2006-01-02 15:04"))).Commit()
 	if err != nil {
 		return false
 	}

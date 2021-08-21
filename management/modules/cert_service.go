@@ -3,27 +3,28 @@ package modules
 import (
 	"context"
 	"fmt"
+	"gateway-swag/management/modules/base"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 func getCertDataKey(certId string) string {
-	return fmt.Sprintf(hgwCertFormat, certId)
+	return fmt.Sprintf(base.HgwCertFormat, certId)
 }
 
 func getCertBakDataKey(certId string) string {
-	return fmt.Sprintf(hgwCertBakFormat, certId)
+	return fmt.Sprintf(base.HgwCertBakFormat, certId)
 }
 
 func getAllCertData() (*clientv3.GetResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-	resp, err := cli.Get(ctx, hgwCertsPrefix, clientv3.WithPrefix())
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
+	resp, err := base.Cli.Get(ctx, base.HgwCertsPrefix, clientv3.WithPrefix())
 	cancel()
 	return resp, err
 }
 
 func putCertData(certId, certJson string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-	_, err := cli.Put(ctx, getCertDataKey(certId), certJson)
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
+	_, err := base.Cli.Put(ctx, getCertDataKey(certId), certJson)
 	cancel()
 	if err != nil {
 		return err
@@ -34,16 +35,16 @@ func putCertData(certId, certJson string) error {
 func delCertData(certId string) bool {
 	certDataKey := getCertDataKey(certId)
 	certBakDataKey := getCertBakDataKey(certId)
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	defer cancel()
-	resp, err := cli.Get(ctx, certDataKey)
+	resp, err := base.Cli.Get(ctx, certDataKey)
 	if err != nil {
 		return false
 	}
 	certData := resp.Kvs[0].Value
 	//开启事务
-	txn := cli.Txn(ctx)
-	lease, err := cli.Grant(ctx, bakDataTTL)
+	txn := base.Cli.Txn(ctx)
+	lease, err := base.Cli.Grant(ctx, base.BakDataTTL)
 	if err != nil {
 		return false
 	}

@@ -2,6 +2,8 @@ package modules
 
 import (
 	"encoding/json"
+	"gateway-swag/management/modules/base"
+	"gateway-swag/management/modules/domain"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"net/url"
@@ -11,86 +13,66 @@ import (
 
 var LbMap = map[string]bool{"roundRobin": true, "random": true}
 
-type Target struct {
-	Pointer       string `json:"pointer"`
-	Weight        int8   `json:"weight"`
-	CurrentWeight int8   `json:"current_weight"`
-}
-
-type Domain struct {
-	Id         string `json:"id"`
-	DomainName string `json:"domain_name"`
-	DomainUrl  string `json:"domain_url"`
-	LbType     string `json:"lb_type"`
-	//代理实现
-	Targets            []*Target       `json:"targets"`
-	BlackIps           map[string]bool `json:"black_ips"`
-	RateLimiterNum     float64         `json:"rate_limiter_num"`
-	RateLimiterMsg     string          `json:"rate_limiter_msg"`
-	RateLimiterEnabled bool            `json:"rate_limiter_enabled"`
-	SetTime            string          `json:"set_time"`
-}
-
 func QueryAllDomains(ctx *gin.Context) {
 	resp, err := getAllDomainsData()
 	if err != nil {
-		resultCtx{ctx}.ErrResult(SystemError)
+		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
 
-	var domains []*Domain
+	var domains []*domain.Domain
 	if resp.Count > 0 {
 		for _, kv := range resp.Kvs {
-			domain := new(Domain)
+			domain := new(domain.Domain)
 			err := json.Unmarshal(kv.Value, domain)
 			if err == nil {
 				domains = append(domains, domain)
 			}
 		}
-		resultCtx{ctx}.SucResult(domains)
+		base.Result{Context: ctx}.SucResult(domains)
 		return
 	}
-	resultCtx{ctx}.SucResult(make([]string, 0))
+	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
 func QueryDomainDataByDomainId(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	if domainId == "" {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 	rsp, err := getDomainDataByDomainId(domainId)
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	if rsp.Count > 0 {
-		domain := new(Domain)
+		domain := new(domain.Domain)
 		err := json.Unmarshal(rsp.Kvs[0].Value, domain)
 		if err != nil {
-			resultCtx{ctx}.ErrResult(DataParseError)
+			base.Result{Context: ctx}.ErrResult(base.DataParseError)
 			return
 		}
-		resultCtx{ctx}.SucResult(domain)
+		base.Result{Context: ctx}.SucResult(domain)
 	} else {
-		resultCtx{ctx}.SucResult(struct{}{})
+		base.Result{Context: ctx}.SucResult(struct{}{})
 	}
 }
 
 func DelDomainByDomainId(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	if domainId == "" {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	deleted := delDomainDataByDomainId(domainId)
 	if deleted {
-		resultCtx{ctx}.SucResult(nil)
+		base.Result{Context: ctx}.SucResult(nil)
 		return
 	}
-	resultCtx{ctx}.ErrResult(SystemError)
+	base.Result{Context: ctx}.ErrResult(base.SystemError)
 }
 
 func AddDomainData(ctx *gin.Context) {
@@ -104,27 +86,27 @@ func AddDomainData(ctx *gin.Context) {
 	rateLimiterEnabled := ctx.PostForm("rate_limiter_enabled")
 
 	if domainUrl == "" || domainName == "" || lbType == "" || proxyTargets == "" {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	urlParse, err := url.ParseRequestURI(domainUrl)
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	//检查负载均衡模式
 	if _, ok := LbMap[lbType]; !ok {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	//检查代理目标数据
-	var targets []*Target
+	var targets []*domain.Target
 	err = json.Unmarshal([]byte(proxyTargets), &targets)
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
@@ -133,7 +115,7 @@ func AddDomainData(ctx *gin.Context) {
 	if blackIpsJson != "" {
 		err := json.Unmarshal([]byte(blackIpsJson), &blackIps)
 		if err != nil {
-			resultCtx{ctx}.ErrResult(DataParseError)
+			base.Result{Context: ctx}.ErrResult(base.DataParseError)
 			return
 		}
 	}
@@ -144,7 +126,7 @@ func AddDomainData(ctx *gin.Context) {
 	if domainId == "" {
 		domainId = uuid.Must(uuid.NewV4()).String()
 	}
-	domain := new(Domain)
+	domain := new(domain.Domain)
 	domain.Id = domainId
 	domain.DomainName = domainName
 	domain.DomainUrl = urlParse.Host
@@ -158,14 +140,14 @@ func AddDomainData(ctx *gin.Context) {
 
 	domainB, err := json.Marshal(domain)
 	if err != nil {
-		resultCtx{ctx}.ErrResult(DataParseError)
+		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
 	err = addDomainData(domain.Id, string(domainB))
 	if err != nil {
-		resultCtx{ctx}.ErrResult(SystemError)
+		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
-	resultCtx{ctx}.SucResult(domain)
+	base.Result{Context: ctx}.SucResult(domain)
 }
