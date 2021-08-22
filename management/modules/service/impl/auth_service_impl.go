@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"gateway-swag/management/modules/base"
-	"gateway-swag/management/modules/handler"
 	"github.com/form3tech-oss/jwt-go"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
@@ -72,8 +71,8 @@ func (AuthServiceImpl) AddNewAdmin(userId string, adminJson []byte) bool {
 //获取token jwt加密token
 func (AuthServiceImpl) GetToken(userId, salt string) string {
 	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(handler.TokenExpire).Unix(),
-		Issuer:    handler.Issuser,
+		ExpiresAt: time.Now().Add(base.TokenExpire).Unix(),
+		Issuer:    base.Issuser,
 		Subject:   userId,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

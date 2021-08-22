@@ -9,16 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"github.com/sirupsen/logrus"
-	"time"
-)
-
-const (
-	//iss 是 OpenId Connect（后文简称OIDC）协议中定义的一个字段，其全称为 “Issuer Identifier”，
-	//中文意思就是：颁发者身份标识，表示 Token 颁发者的唯一标识，一般是一个 http(s) url，如 https://www.baidu.com。
-	//在 Token 的验证过程中，会将它作为验证的一个阶段，如无法匹配将会造成验证失败，最后返回 HTTP 401
-	Issuser = "swag_admin"
-	//token 过期时间
-	TokenExpire = time.Hour * 24
 )
 
 var authService = new(impl.AuthServiceImpl)
@@ -47,7 +37,7 @@ func AuthHandler(ctx *gin.Context) {
 	//解析从etcd获取的json存储的admin用户信息
 	err = json.Unmarshal(userRsp.Kvs[0].Value, admin)
 	if err != nil {
-		base.Result{Context: ctx}.ErrResult(base.SystemError)
+		base.Result{Context: ctx}.ErrResult(base.JsonParseError)
 		return
 	}
 	//通过盐值解析jwt声明token信息
@@ -73,6 +63,7 @@ func AuthHandler(ctx *gin.Context) {
 
 func InitAdminHandler(ctx *gin.Context) {
 	resp, err := authService.InitAdminData()
+	//判断是否已经初始化过管理员账号
 	if err != nil || resp.Count > 0 {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -133,7 +124,7 @@ func LoginHandler(ctx *gin.Context) {
 	err = json.Unmarshal(resp.Kvs[0].Value, adminUser)
 
 	if err != nil {
-		base.Result{Context: ctx}.ErrResult(base.SystemError)
+		base.Result{Context: ctx}.ErrResult(base.JsonParseError)
 		return
 	}
 	//对输入密码按照md5加密方式加密后与存储在etcd中用户密码信息对比
@@ -149,8 +140,8 @@ func LoginHandler(ctx *gin.Context) {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
-	ctx.SetCookie("jwt", token, int(TokenExpire.Seconds()), "/", "", false, false)
-	ctx.SetCookie("userId", userId, int(TokenExpire.Seconds()), "/", "", false, false)
+	ctx.SetCookie("jwt", token, int(base.TokenExpire.Seconds()), "/", "", false, false)
+	ctx.SetCookie("userId", userId, int(base.TokenExpire.Seconds()), "/", "", false, false)
 	base.Result{Context: ctx}.SucResult("success")
 }
 
