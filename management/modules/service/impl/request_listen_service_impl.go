@@ -1,4 +1,4 @@
-package modules
+package impl
 
 import (
 	"context"
@@ -9,10 +9,13 @@ import (
 
 var requestListenTTL int64 = 60
 
+type RequestListenServiceImpl struct {
+}
+
 func requestListenDataK(listenId string) string {
 	return fmt.Sprintf(base.RequestListenDataFormat, listenId)
 }
-func putRequestListen(listenId string, copyJson string) error {
+func (RequestListenServiceImpl) AddRequestListen(listenId string, copyJson string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	lease, err := base.Cli.Grant(ctx, requestListenTTL)
 	if err != nil {
@@ -26,7 +29,7 @@ func putRequestListen(listenId string, copyJson string) error {
 	return nil
 }
 
-func requestsCopy() (*clientv3.GetResponse, error) {
+func (RequestListenServiceImpl) GetRequestsCopy() (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	op := clientv3.WithLastKey()
 	op = append(op, clientv3.WithLimit(500))

@@ -1,4 +1,4 @@
-package modules
+package impl
 
 import (
 	"context"
@@ -6,6 +6,9 @@ import (
 	"gateway-swag/management/modules/base"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+type CertServiceImpl struct {
+}
 
 func getCertDataKey(certId string) string {
 	return fmt.Sprintf(base.HgwCertFormat, certId)
@@ -15,14 +18,14 @@ func getCertBakDataKey(certId string) string {
 	return fmt.Sprintf(base.HgwCertBakFormat, certId)
 }
 
-func getAllCertData() (*clientv3.GetResponse, error) {
+func (CertServiceImpl) GetAllCertData() (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	resp, err := base.Cli.Get(ctx, base.HgwCertsPrefix, clientv3.WithPrefix())
 	cancel()
 	return resp, err
 }
 
-func putCertData(certId, certJson string) error {
+func (CertServiceImpl) AddCertData(certId, certJson string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	_, err := base.Cli.Put(ctx, getCertDataKey(certId), certJson)
 	cancel()
@@ -32,7 +35,7 @@ func putCertData(certId, certJson string) error {
 	return nil
 }
 
-func delCertData(certId string) bool {
+func (CertServiceImpl) DelCertData(certId string) bool {
 	certDataKey := getCertDataKey(certId)
 	certBakDataKey := getCertBakDataKey(certId)
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)

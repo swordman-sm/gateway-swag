@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gateway-swag/management/modules"
+	"gateway-swag/management/modules/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -38,36 +38,36 @@ func main() {
 	engine.Static("/admin/", "webapp")
 	engine.Static("/static/", "webapp/static")
 
+	engine.GET("/index", handler.IndexHandler, handler.AuthHandler)
+	engine.POST("/init", handler.InitAdminHandler)
+	engine.POST("/login", handler.LoginHandler)
+	engine.GET("/logout", handler.LogoutHandler)
+
 	//统一群组 路径定义
-	group := engine.Group("/v1", modules.AuthHandler)
+	group := engine.Group("/swag", handler.AuthHandler)
 
-	group.POST("/domains/", modules.AddDomainData)
-	group.GET("/domains/", modules.QueryAllDomains)
-	group.POST("/domains/:domain_id", modules.AddDomainData)
-	group.GET("/domains/:domain_id", modules.QueryDomainDataByDomainId)
-	group.DELETE("/domains/:domain_id", modules.DelDomainByDomainId)
+	group.POST("/domains/", handler.AddDomainDataHandler)
+	group.GET("/domains/", handler.QueryAllDomainsDataHandler)
+	group.POST("/domains/:domain_id", handler.AddDomainDataHandler)
+	group.GET("/domains/:domain_id", handler.QueryDomainDataByDomainIdHandler)
+	group.DELETE("/domains/:domain_id", handler.DelDomainByDomainIdHandler)
 
-	group.POST("/domains/:domain_id/paths/", modules.PutPath)
-	group.POST("/domains/:domain_id/paths/:path_id", modules.PutPath)
-	group.GET("/domains/:domain_id/paths/", modules.Paths)
-	group.GET("/domains/:domain_id/paths/:path_id", modules.GetPath)
-	group.DELETE("/domains/:domain_id/paths/:path_id", modules.DelPath)
+	group.POST("/domains/:domain_id/paths/", handler.AddPathDataHandler)
+	group.POST("/domains/:domain_id/paths/:path_id", handler.AddPathDataHandler)
+	group.GET("/domains/:domain_id/paths/", handler.GetPathsDataByDomainIdHandler)
+	group.GET("/domains/:domain_id/paths/:path_id", handler.GetPathDataByDomainIdHandler)
+	group.DELETE("/domains/:domain_id/paths/:path_id", handler.DelPathDataByDomainIdAndPathIdHandler)
 
-	engine.POST("/certs/", modules.PutCert)
-	engine.GET("/certs/", modules.Certs)
-	engine.POST("/certs/:cert_id", modules.PutCert)
-	engine.DELETE("/certs/:cert_id", modules.DelCert)
+	engine.POST("/certs/", handler.AddCertHandler)
+	engine.GET("/certs/", handler.GetAllCertsDataHandler)
+	engine.POST("/certs/:cert_id", handler.AddCertHandler)
+	engine.DELETE("/certs/:cert_id", handler.DelCertByCertIdHandler)
 
-	group.GET("/gateways/", modules.Gateways)
-	group.GET("/gateways/:server_name", modules.Gateway)
+	group.GET("/gateways/", handler.GetAllGatewayDataHandler)
+	group.GET("/gateways/:server_name", handler.GetGatewayDataByServerHandler)
 
-	group.POST("/requests-listen/:domain_id/", modules.AddRequestListen)
-	group.GET("/requests-copy/", modules.RequestsCopy)
-
-	engine.GET("/index", modules.Index, modules.AuthHandler)
-	engine.POST("/init", modules.AuthInit)
-	engine.POST("/login", modules.Login)
-	engine.GET("/logout", modules.Logout)
+	group.POST("/requests-listen/:domain_id/", handler.AddRequestListenHandler)
+	group.GET("/requests-copy/", handler.RequestsCopyHandler)
 
 	logrus.Infof("Gateway 后端管理服务启动地址: %s, etcd服务地址: %s", *addr, *etcd)
 	err := engine.Run(*addr)

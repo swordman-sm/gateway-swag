@@ -1,9 +1,10 @@
-package modules
+package handler
 
 import (
 	"encoding/json"
 	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"net/url"
@@ -13,8 +14,10 @@ import (
 
 var LbMap = map[string]bool{"roundRobin": true, "random": true}
 
-func QueryAllDomains(ctx *gin.Context) {
-	resp, err := getAllDomainsData()
+var domainService = new(impl.DomainServiceImpl)
+
+func QueryAllDomainsDataHandler(ctx *gin.Context) {
+	resp, err := domainService.GetAllDomainsData()
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -35,13 +38,13 @@ func QueryAllDomains(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
-func QueryDomainDataByDomainId(ctx *gin.Context) {
+func QueryDomainDataByDomainIdHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	if domainId == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
-	rsp, err := getDomainDataByDomainId(domainId)
+	rsp, err := domainService.GetDomainDataByDomainId(domainId)
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
@@ -60,14 +63,14 @@ func QueryDomainDataByDomainId(ctx *gin.Context) {
 	}
 }
 
-func DelDomainByDomainId(ctx *gin.Context) {
+func DelDomainByDomainIdHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	if domainId == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
-	deleted := delDomainDataByDomainId(domainId)
+	deleted := domainService.DelDomainDataByDomainId(domainId)
 	if deleted {
 		base.Result{Context: ctx}.SucResult(nil)
 		return
@@ -75,7 +78,7 @@ func DelDomainByDomainId(ctx *gin.Context) {
 	base.Result{Context: ctx}.ErrResult(base.SystemError)
 }
 
-func AddDomainData(ctx *gin.Context) {
+func AddDomainDataHandler(ctx *gin.Context) {
 	domainUrl := ctx.PostForm("domain_url")
 	domainName := ctx.PostForm("domain_name")
 	lbType := ctx.PostForm("lb_type")
@@ -126,28 +129,28 @@ func AddDomainData(ctx *gin.Context) {
 	if domainId == "" {
 		domainId = uuid.Must(uuid.NewV4()).String()
 	}
-	domain := new(domain.Domain)
-	domain.Id = domainId
-	domain.DomainName = domainName
-	domain.DomainUrl = urlParse.Host
-	domain.LbType = lbType
-	domain.Targets = targets
-	domain.BlackIps = blackIps
-	domain.RateLimiterNum, _ = strconv.ParseFloat(rateLimiterNum, 10)
-	domain.RateLimiterMsg = rateLimiterMsg
-	domain.RateLimiterEnabled, _ = strconv.ParseBool(rateLimiterEnabled)
-	domain.SetTime = time.Now().Format("2006/1/2 15:04:05")
+	domainA := new(domain.Domain)
+	domainA.Id = domainId
+	domainA.DomainName = domainName
+	domainA.DomainUrl = urlParse.Host
+	domainA.LbType = lbType
+	domainA.Targets = targets
+	domainA.BlackIps = blackIps
+	domainA.RateLimiterNum, _ = strconv.ParseFloat(rateLimiterNum, 10)
+	domainA.RateLimiterMsg = rateLimiterMsg
+	domainA.RateLimiterEnabled, _ = strconv.ParseBool(rateLimiterEnabled)
+	domainA.SetTime = time.Now().Format("2006/1/2 15:04:05")
 
-	domainB, err := json.Marshal(domain)
+	domainB, err := json.Marshal(domainA)
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
-	err = addDomainData(domain.Id, string(domainB))
+	err = domainService.AddDomainData(domainA.Id, string(domainB))
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
-	base.Result{Context: ctx}.SucResult(domain)
+	base.Result{Context: ctx}.SucResult(domainA)
 }

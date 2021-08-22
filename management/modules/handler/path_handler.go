@@ -1,23 +1,26 @@
-package modules
+package handler
 
 import (
 	"encoding/json"
 	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"strconv"
 	"time"
 )
 
-func Paths(ctx *gin.Context) {
+var pathService = new(impl.PathServiceImpl)
+
+func GetPathsDataByDomainIdHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	if domainId == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
 
-	rsp, err := getPathDataByDomainId(domainId)
+	rsp, err := pathService.GetPathsDataByDomainId(domainId)
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -37,7 +40,7 @@ func Paths(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
-func PutPath(ctx *gin.Context) {
+func AddPathDataHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	reqMethod := ctx.PostForm("req_method")
 	reqPath := ctx.PostForm("req_path")
@@ -96,7 +99,7 @@ func PutPath(ctx *gin.Context) {
 		return
 	}
 
-	err = addPathData(domainId, path.Id, string(pathB))
+	err = pathService.AddPathData(domainId, path.Id, string(pathB))
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -104,14 +107,14 @@ func PutPath(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(path)
 }
 
-func GetPath(ctx *gin.Context) {
+func GetPathDataByDomainIdHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	pathId := ctx.Param("path_id")
 	if domainId == "" || pathId == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
-	rsp, err := getPathDataByDomainIdAndPathId(domainId, pathId)
+	rsp, err := pathService.GetPathDataByDomainIdAndPathId(domainId, pathId)
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
@@ -130,7 +133,7 @@ func GetPath(ctx *gin.Context) {
 	}
 }
 
-func DelPath(ctx *gin.Context) {
+func DelPathDataByDomainIdAndPathIdHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	pathId := ctx.Param("path_id")
 	if domainId == "" || pathId == "" {
@@ -138,7 +141,7 @@ func DelPath(ctx *gin.Context) {
 		return
 	}
 
-	deleted := delPathDataByDomainIdAndPathId(domainId, pathId)
+	deleted := pathService.DelPathDataByDomainIdAndPathId(domainId, pathId)
 	if deleted {
 		base.Result{Context: ctx}.SucResult(nil)
 		return

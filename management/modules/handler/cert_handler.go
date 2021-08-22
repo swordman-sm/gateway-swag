@@ -1,25 +1,28 @@
-package modules
+package handler
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 	"time"
 )
 
+var certService = new(impl.CertServiceImpl)
+
 //证书管理
-func Certs(ctx *gin.Context) {
-	datas, err := getAllCertData()
+func GetAllCertsDataHandler(ctx *gin.Context) {
+	resp, err := certService.GetAllCertData()
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
 	}
 	var certs []*domain.Cert
-	if datas.Count > 0 {
-		for _, kv := range datas.Kvs {
+	if resp.Count > 0 {
+		for _, kv := range resp.Kvs {
 			cert := new(domain.Cert)
 			err := json.Unmarshal(kv.Value, cert)
 			if err == nil {
@@ -32,7 +35,7 @@ func Certs(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
-func PutCert(ctx *gin.Context) {
+func AddCertHandler(ctx *gin.Context) {
 	certBlock := ctx.PostForm("cert_block")
 	certKeyBlock := ctx.PostForm("cert_key_block")
 	serName := ctx.PostForm("ser_name")
@@ -48,7 +51,7 @@ func PutCert(ctx *gin.Context) {
 		return
 	}
 
-	//有接收到certId 就是修改操作， 否则就是新增
+	//有certId 就是修改操作， 否则就是新增
 	var certId string
 	certId = ctx.Param("cert_id")
 	if certId == "" {
@@ -67,7 +70,7 @@ func PutCert(ctx *gin.Context) {
 		return
 	}
 
-	err = putCertData(cert.Id, string(certB))
+	err = certService.AddCertData(cert.Id, string(certB))
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -75,13 +78,13 @@ func PutCert(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(cert)
 }
 
-func DelCert(ctx *gin.Context) {
+func DelCertByCertIdHandler(ctx *gin.Context) {
 	certId := ctx.Param("cert_id")
 	if certId == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
-	deleted := delCertData(certId)
+	deleted := certService.DelCertData(certId)
 	if deleted {
 		base.Result{Context: ctx}.SucResult(nil)
 		return

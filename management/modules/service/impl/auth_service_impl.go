@@ -1,4 +1,4 @@
-package modules
+package impl
 
 import (
 	"context"
@@ -6,10 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"gateway-swag/management/modules/base"
+	"gateway-swag/management/modules/handler"
 	"github.com/form3tech-oss/jwt-go"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 )
+
+type AuthServiceImpl struct {
+}
 
 //根据userId获取存储在etcd指定的user key
 func getUserKey(userId string) string {
@@ -17,7 +21,7 @@ func getUserKey(userId string) string {
 }
 
 //在etcd中根据用户id获取用户
-func getAdminUserByUserId(userId string) (*clientv3.GetResponse, error) {
+func (AuthServiceImpl) GetAdminByUserId(userId string) (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	resp, err := base.Cli.Get(ctx, getUserKey(userId))
 	cancel()
@@ -25,57 +29,51 @@ func getAdminUserByUserId(userId string) (*clientv3.GetResponse, error) {
 }
 
 //初始化admin用户信息
-func authDataInit() (*clientv3.GetResponse, error) {
+func (AuthServiceImpl) InitAdminData() (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	rsp, err := base.Cli.Get(ctx, base.AuthInitDataPath)
 	cancel()
 	return rsp, err
 }
 
-//将用户名转16进制MD5加密字符串
-func initUserNameByMd5(username string) string {
-	md5Ctx := md5.New()
-	md5Ctx.Write([]byte(username))
-	md5UserName := md5Ctx.Sum(nil)
-	return hex.EncodeToString(md5UserName)
+//用户名密码MD5加密
+func (AuthServiceImpl) Md5UsernameAndPwd(username, password, salt string) (string, string) {
+	//用户名加密
+	digest := md5.New()
+	digest.Write([]byte(username))
+	md5UserId := digest.Sum(nil)
+	userIdHexStr := hex.EncodeToString(md5UserId)
+	//密码加密
+	passwordHexStr := ""
+	if password != "" && salt != "" {
+		digest.Reset()
+		digest.Write([]byte(salt))
+		digest.Write([]byte(password))
+		digest.Write([]byte(salt))
+		md5Pwd := digest.Sum(nil)
+		passwordHexStr = hex.EncodeToString(md5Pwd)
+	}
+	return userIdHexStr, passwordHexStr
 }
 
-//将密码转16进制MD5及盐值加密后的字符串
-func initPasswordByMd5(password, salt string) string {
-	md5Ctx := md5.New()
-	md5Ctx.Write([]byte(salt))
-	md5Ctx.Write([]byte(password))
-	md5Ctx.Write([]byte(salt))
-	md5Pwd := md5Ctx.Sum(nil)
-	return hex.EncodeToString(md5Pwd)
-}
-
-func putAdminUser(userId string, adminJson []byte) bool {
+func (AuthServiceImpl) AddNewAdmin(userId string, adminJson []byte) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
 	//etcd 使用 Txn 提供简单的事务处理，使用这个特性，可以一次性插入多条语句
+	cancel()
 	txn := base.Cli.Txn(ctx)
 	commit, err := txn.Then(clientv3.OpPut(getUserKey(userId), string(adminJson)),
 		clientv3.OpPut(base.AuthDataPath, time.Now().Format("2006-01-02 15:04"))).Commit()
 	if err != nil {
 		return false
 	}
-	cancel()
 	return commit.Succeeded
 }
 
-//check token是否有效
-func checkToken(userId, salt, jwtStr string) (*jwt.Token, error) {
-	token, err := jwt.ParseWithClaims(jwtStr, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(salt), nil
-	})
-	return token, err
-}
-
 //获取token jwt加密token
-func getToken(userId, salt string) string {
+func (AuthServiceImpl) GetToken(userId, salt string) string {
 	claims := &jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(TokenExpire).Unix(),
-		Issuer:    Issuser,
+		ExpiresAt: time.Now().Add(handler.TokenExpire).Unix(),
+		Issuer:    handler.Issuser,
 		Subject:   userId,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -84,4 +82,12 @@ func getToken(userId, salt string) string {
 		return ""
 	}
 	return tokenStr
+}
+
+//check token是否有效
+func (AuthServiceImpl) CheckToken(userId, salt, jwtStr string) (*jwt.Token, error) {
+	token, err := jwt.ParseWithClaims(jwtStr, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(salt), nil
+	})
+	return token, err
 }

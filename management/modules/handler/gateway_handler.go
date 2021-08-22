@@ -1,9 +1,11 @@
-package modules
+package handler
 
 import (
 	"encoding/json"
 	"fmt"
 	"gateway-swag/management/modules/base"
+	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -28,13 +30,10 @@ const (
 	fiveMinute    = 5
 )
 
-type RecordsData struct {
-	Time        int64                             `json:"time"`
-	MetricsData map[string]map[string]interface{} `json:"metrics_data"`
-}
+var gatewayService = new(impl.GatewayServiceImpl)
 
-func Gateways(ctx *gin.Context) {
-	rsp, err := gatewaysData()
+func GetAllGatewayDataHandler(ctx *gin.Context) {
+	rsp, err := gatewayService.GetAllGatewaysData()
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -52,16 +51,17 @@ func Gateways(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
-func Gateway(ctx *gin.Context) {
+func GetGatewayDataByServerHandler(ctx *gin.Context) {
 	serName := ctx.Param("server_name")
 	if serName == "" {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
 	}
-	mcRsp, _ := gatewayMachineData(serName)
+	mcRsp, _ := gatewayService.GetGatewayDataByServer(serName)
 	machineData := string(mcRsp.Kvs[0].Value)
 
-	rsp, err := gatewayData(serName, halfHour)
+	//取30次以内的结果
+	rsp, err := gatewayService.GetGatewayDataByLimit(serName, 30)
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -71,7 +71,7 @@ func Gateway(ctx *gin.Context) {
 	spanMap := make(map[string]string)
 
 	for _, kv := range rsp.Kvs {
-		recordData := RecordsData{}
+		recordData := new(domain.RecordsData)
 		err := json.Unmarshal(kv.Value, &recordData)
 		if err != nil {
 			continue
@@ -95,7 +95,7 @@ func Gateway(ctx *gin.Context) {
 	}
 	start := 0
 	for _, kv := range rsp.Kvs {
-		recordData := RecordsData{}
+		recordData := domain.RecordsData{}
 		err := json.Unmarshal(kv.Value, &recordData)
 		if err != nil {
 			continue

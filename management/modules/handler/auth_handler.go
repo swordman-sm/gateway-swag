@@ -1,9 +1,10 @@
-package modules
+package handler
 
 import (
 	"encoding/json"
 	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/form3tech-oss/jwt-go"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
@@ -15,13 +16,15 @@ const (
 	//iss 是 OpenId Connect（后文简称OIDC）协议中定义的一个字段，其全称为 “Issuer Identifier”，
 	//中文意思就是：颁发者身份标识，表示 Token 颁发者的唯一标识，一般是一个 http(s) url，如 https://www.baidu.com。
 	//在 Token 的验证过程中，会将它作为验证的一个阶段，如无法匹配将会造成验证失败，最后返回 HTTP 401
-	Issuser = "swagw_admin"
+	Issuser = "swag_admin"
 	//token 过期时间
 	TokenExpire = time.Hour * 24
 )
 
+var authService = new(impl.AuthServiceImpl)
+
 //不使用的变量可以使用_代替
-func Index(_ *gin.Context) {
+func IndexHandler(_ *gin.Context) {
 
 }
 
@@ -34,7 +37,8 @@ func AuthHandler(ctx *gin.Context) {
 		return
 	}
 	//根据userId在etcd中找不到对应的用户信息
-	userRsp, err := getAdminUserByUserId(userId)
+
+	userRsp, err := authService.GetAdminByUserId(userId)
 	if err != nil || userRsp.Count == 0 {
 		base.Result{Context: ctx}.ErrResult(base.SystemErrorNotLogin)
 		return
@@ -47,7 +51,7 @@ func AuthHandler(ctx *gin.Context) {
 		return
 	}
 	//通过盐值解析jwt声明token信息
-	token, err := checkToken(userId, admin.Salt, jwtStr)
+	token, err := authService.CheckToken(userId, admin.Salt, jwtStr)
 
 	if token != nil && err == nil {
 		//token验证通过
@@ -67,8 +71,8 @@ func AuthHandler(ctx *gin.Context) {
 	}
 }
 
-func AuthInit(ctx *gin.Context) {
-	resp, err := authDataInit()
+func InitAdminHandler(ctx *gin.Context) {
+	resp, err := authService.InitAdminData()
 	if err != nil || resp.Count > 0 {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -85,9 +89,7 @@ func AuthInit(ctx *gin.Context) {
 		return
 	}
 
-	userId := initUserNameByMd5(username)
-	//盐值增益加密
-	md5pwd := initPasswordByMd5(password, salt)
+	userId, md5pwd := authService.Md5UsernameAndPwd(username, password, salt)
 
 	//创建一个AdminUser用户信息
 	adminUser := domain.AdminUser{
@@ -102,7 +104,7 @@ func AuthInit(ctx *gin.Context) {
 		return
 	}
 	//保存创建的AdminUser信息
-	isSuccuss := putAdminUser(userId, adminJson)
+	isSuccuss := authService.AddNewAdmin(userId, adminJson)
 	if !isSuccuss {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -110,7 +112,7 @@ func AuthInit(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(base.SystemSuccess)
 }
 
-func Login(ctx *gin.Context) {
+func LoginHandler(ctx *gin.Context) {
 	username := ctx.PostForm("username")
 	password := ctx.PostForm("password")
 	if username == "" || password == "" {
@@ -119,13 +121,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	//根据用户名获取userId
-	userId := initUserNameByMd5(username)
+	userId, _ := authService.Md5UsernameAndPwd(username, "", "")
 	//通过userId获取存储在etcd中的userJson
-	resp, err := getAdminUserByUserId(userId)
+	resp, err := authService.GetAdminByUserId(userId)
 	if err != nil || resp.Count == 0 {
 		base.Result{Context: ctx}.ErrResult(base.LoginParamsError)
 		return
 	}
+
 	adminUser := new(domain.AdminUser)
 	err = json.Unmarshal(resp.Kvs[0].Value, adminUser)
 
@@ -134,13 +137,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	//对输入密码按照md5加密方式加密后与存储在etcd中用户密码信息对比
-	if adminUser.Password != initPasswordByMd5(password, adminUser.Salt) {
+	_, md5Pwd := authService.Md5UsernameAndPwd(username, password, adminUser.Salt)
+	if adminUser.Password != md5Pwd {
 		base.Result{Context: ctx}.ErrResult(base.LoginParamsError)
 		return
 	}
 
 	//验证通过,获取token
-	token := getToken(userId, adminUser.Salt)
+	token := authService.GetToken(userId, adminUser.Salt)
 	if token == "" {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -150,7 +154,7 @@ func Login(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult("success")
 }
 
-func Logout(ctx *gin.Context) {
+func LogoutHandler(ctx *gin.Context) {
 	ctx.SetCookie("jwt", "", -1, "/", "", false, true)
 	ctx.SetCookie("userId", "", -1, "/", "", false, true)
 	base.Result{Context: ctx}.SucResult("success")

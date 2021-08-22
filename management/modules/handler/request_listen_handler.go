@@ -1,14 +1,17 @@
-package modules
+package handler
 
 import (
 	"encoding/json"
 	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/domain"
+	"gateway-swag/management/modules/service/impl"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/iris-contrib/go.uuid"
 )
 
-func AddRequestListen(ctx *gin.Context) {
+var requestListenService = new(impl.RequestListenServiceImpl)
+
+func AddRequestListenHandler(ctx *gin.Context) {
 	domainId := ctx.Param("domain_id")
 	listenPath := ctx.PostForm("listen_path")
 	if domainId == "" || listenPath == "" {
@@ -16,7 +19,7 @@ func AddRequestListen(ctx *gin.Context) {
 		return
 	}
 
-	domainRsp, err := getDomainDataByDomainId(domainId)
+	domainRsp, err := domainService.GetDomainDataByDomainId(domainId)
 	if err != nil || domainRsp.Count == 0 {
 		base.Result{Context: ctx}.ErrResult(base.DataParseError)
 		return
@@ -33,7 +36,7 @@ func AddRequestListen(ctx *gin.Context) {
 	reqListen.ListenPath = listenPath
 	reqCopyB, _ := json.Marshal(reqListen)
 	listenId := uuid.Must(uuid.NewV4()).String()
-	err = putRequestListen(listenId, string(reqCopyB))
+	err = requestListenService.AddRequestListen(listenId, string(reqCopyB))
 	if err != nil {
 		base.Result{Context: ctx}.ErrResult(base.SystemError)
 		return
@@ -41,9 +44,9 @@ func AddRequestListen(ctx *gin.Context) {
 	base.Result{Context: ctx}.SucResult(make([]string, 0))
 }
 
-func RequestsCopy(ctx *gin.Context) {
+func RequestsCopyHandler(ctx *gin.Context) {
 	var data []*domain.RequestCopy
-	rsp, err := requestsCopy()
+	rsp, err := requestListenService.GetRequestsCopy()
 	if err != nil || rsp.Count == 0 {
 		base.Result{Context: ctx}.SucResult(make([]string, 0))
 		return
