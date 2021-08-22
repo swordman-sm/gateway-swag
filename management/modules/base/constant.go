@@ -1,11 +1,8 @@
 package base
 
 import (
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"time"
 )
-
-var Cli *clientv3.Client
 
 const (
 	SystemSuccess           = 200

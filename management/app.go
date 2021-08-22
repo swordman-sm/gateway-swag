@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gateway-swag/management/modules/base"
 	"gateway-swag/management/modules/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -24,6 +25,11 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	//解析命令行传递参数
 	kingpin.Parse()
+
+	err := base.ConnectStore([]string{*etcd}, *username, *password)
+	if err != nil {
+		panic(err)
+	}
 
 	//我们每次启动gin服务器，如果不加
 	//gin.SetMode(gin.ReleaseMode)
@@ -70,7 +76,7 @@ func main() {
 	group.GET("/requests-copy/", handler.RequestsCopyHandler)
 
 	logrus.Infof("Gateway 后端管理服务启动地址: %s, etcd服务地址: %s", *addr, *etcd)
-	err := engine.Run(*addr)
+	err = engine.Run(*addr)
 	if err != nil {
 		logrus.Errorf("启动服务失败, 端口监听 %v", err)
 	}
