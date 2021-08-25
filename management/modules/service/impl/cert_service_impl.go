@@ -11,16 +11,16 @@ type CertServiceImpl struct {
 }
 
 func getCertDataKey(certId string) string {
-	return fmt.Sprintf(base.HgwCertFormat, certId)
+	return fmt.Sprintf(base.SwagCertFormat, certId)
 }
 
 func getCertBakDataKey(certId string) string {
-	return fmt.Sprintf(base.HgwCertBakFormat, certId)
+	return fmt.Sprintf(base.SwagCertBakFormat, certId)
 }
 
 func (CertServiceImpl) GetAllCertData() (*clientv3.GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), base.WriteTimeout)
-	resp, err := base.Cli.Get(ctx, base.HgwCertsPrefix, clientv3.WithPrefix())
+	resp, err := base.Cli.Get(ctx, base.SwagCertsPrefix, clientv3.WithPrefix())
 	cancel()
 	return resp, err
 }
