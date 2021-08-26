@@ -46,6 +46,7 @@ const (
 	DomainDataFormat     = DomainsDataPrefix + "%s/"
 	DomainBakDataFormat  = DomainsBakDataPrefix + "%s/"
 	//Path relate
+	DomainPathsDataPrefix    = SwagPrefix + "path-data/"
 	DomainPathsBakDataPrefix = SwagPrefix + "path-data-bak/%s/"
 	DomainPathsDataFormat    = SwagPrefix + "path-data/%s/"
 	DomainPathDataFormat     = DomainPathsDataFormat + "%s"

@@ -12,4 +12,5 @@ type Domain struct {
 	RateLimiterMsg     string          `json:"rate_limiter_msg"`
 	RateLimiterEnabled bool            `json:"rate_limiter_enabled"`
 	SetTime            string          `json:"set_time"`
+	Paths              []*Path         `json:"paths"`
 }

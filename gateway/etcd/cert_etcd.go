@@ -10,16 +10,16 @@ import (
 	"strings"
 )
 
-func getCertDataKey(certId string) string {
+func GetCertDataKey(certId string) string {
 	return fmt.Sprintf(base.SwagCertFormat, certId)
 }
 
-func getCertBakDataKey(certPath string) string {
+func GetCertBakDataKey(certPath string) string {
 	return strings.Replace(certPath, base.SwagCertsPrefix, base.SwagCertsBakPrefix, 1)
 }
 
 //监听证书数据变化
-func watchCertChange(e chan *clientv3.Event) {
+func WatchCertChange(e chan *clientv3.Event) {
 	for {
 		watchChan := base.Cli.Watch(context.Background(), base.SwagCertsPrefix, clientv3.WithPrefix())
 		for resp := range watchChan {
@@ -45,7 +45,7 @@ func GetAllCertsData() ([]*domain.Cert, error) {
 		if err == nil {
 			certs = append(certs, cert)
 		} else {
-			domain.Sys().Warnf("证书数据解析失败 %s, error: %s", string(kv.Value), err)
+			base.Sys().Warnf("证书数据解析失败 %s, error: %s", string(kv.Value), err)
 		}
 	}
 	return certs, err
@@ -62,7 +62,7 @@ func GetCertDataByPath(certPath string) (*domain.Cert, error) {
 	}
 	err = json.Unmarshal(resp.Kvs[0].Value, cert)
 	if err != nil {
-		domain.Sys().Warnf("[%s] json parse error, value : %q err: %s", certPath, resp.Kvs[0].Value, err)
+		base.Sys().Warnf("[%s] json parse error, value : %q err: %s", certPath, resp.Kvs[0].Value, err)
 		return cert, err
 	}
 	return cert, err

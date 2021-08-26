@@ -26,7 +26,7 @@ func main() {
 	//解析命令行传递参数
 	kingpin.Parse()
 
-	err := base.ConnectStore([]string{*etcd}, *username, *password)
+	err := base.EtcdConnect([]string{*etcd}, *username, *password)
 	if err != nil {
 		panic(err)
 	}
